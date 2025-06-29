@@ -1,0 +1,224 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jogo da Velha com Bot Inteligente (Minimax)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      text-align: center;
+      margin-top: 30px;
+    }
+    h1 {
+      color: #00bcd4;
+    }
+    #placar {
+      margin: 10px;
+      font-size: 18px;
+      color: #ffffff;
+    }
+    .tabuleiro {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .celula {
+      width: 100px;
+      height: 100px;
+      font-size: 40px;
+      background-color: #1e1e1e;
+      color: #fff;
+      border: 2px solid #00bcd4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .celula:hover {
+      background-color: #333333;
+    }
+    #mensagem {
+      margin: 15px 0;
+      font-size: 20px;
+      color: #ffffff;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #00bcd4;
+      color: white;
+    }
+    button:hover {
+      background-color: #008c9e;
+    }
+    @media (max-width: 400px) {
+      .tabuleiro {
+        grid-template-columns: repeat(3, 80px);
+      }
+      .celula {
+        width: 80px;
+        height: 80px;
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Jogo da Velha</h1>
+  <div id="placar">X: 0 | O: 0</div>
+  <div class="tabuleiro" id="tabuleiro"></div>
+  <div id="mensagem"></div>
+  <button onclick="reiniciarJogo()">Reiniciar</button>
+  <button onclick="alternarModo()">Modo: 2 Jogadores</button>
+
+  <script>
+    const tabuleiro = document.getElementById("tabuleiro");
+    const mensagem = document.getElementById("mensagem");
+    const placarEl = document.getElementById("placar");
+    let jogadorAtual = "X";
+    let jogoAtivo = true;
+    let estado = ["", "", "", "", "", "", "", "", ""];
+    let placar = { X: 0, O: 0 };
+    let modoBot = false;
+
+    function criarTabuleiro() {
+      estado = ["", "", "", "", "", "", "", "", ""];
+      tabuleiro.innerHTML = "";
+      for (let i = 0; i < 9; i++) {
+        const celula = document.createElement("div");
+        celula.classList.add("celula");
+        celula.dataset.index = i;
+        celula.addEventListener("click", clicarCelula);
+        tabuleiro.appendChild(celula);
+      }
+      jogadorAtual = "X";
+      jogoAtivo = true;
+      mensagem.textContent = `Vez do jogador: ${jogadorAtual}`;
+      if(modoBot && jogadorAtual === "O") {
+        setTimeout(jogadaDoBot, 300);
+      }
+    }
+
+    function clicarCelula(e) {
+      if (!jogoAtivo) return;
+      if (modoBot && jogadorAtual === "O") return;
+      const index = e.target.dataset.index;
+      if (estado[index] !== "") return;
+      marcarJogada(index, jogadorAtual);
+      if (verificarVitoria(estado, jogadorAtual)) {
+        mensagem.textContent = `Jogador ${jogadorAtual} venceu!`;
+        placar[jogadorAtual]++;
+        atualizarPlacar();
+        jogoAtivo = false;
+        return;
+      } else if (!estado.includes("")) {
+        mensagem.textContent = "Empate!";
+        jogoAtivo = false;
+        return;
+      }
+      jogadorAtual = jogadorAtual === "X" ? "O" : "X";
+      mensagem.textContent = `Vez do jogador: ${jogadorAtual}`;
+      if (modoBot && jogadorAtual === "O" && jogoAtivo) {
+        setTimeout(jogadaDoBot, 300);
+      }
+    }
+
+    function marcarJogada(index, jogador) {
+      estado[index] = jogador;
+      const celula = tabuleiro.querySelector(`.celula[data-index='${index}']`);
+      celula.textContent = jogador;
+    }
+
+    function jogadaDoBot() {
+      let melhorJogada = minimax(estado, "O").index;
+      marcarJogada(melhorJogada, "O");
+      if (verificarVitoria(estado, "O")) {
+        mensagem.textContent = "Jogador O (Bot) venceu!";
+        placar["O"]++;
+        atualizarPlacar();
+        jogoAtivo = false;
+        return;
+      } else if (!estado.includes("")) {
+        mensagem.textContent = "Empate!";
+        jogoAtivo = false;
+        return;
+      }
+      jogadorAtual = "X";
+      mensagem.textContent = `Vez do jogador: ${jogadorAtual}`;
+    }
+
+    function verificarVitoria(tab, jogador) {
+      const combinacoes = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return combinacoes.some(([a,b,c]) => {
+        return tab[a] === jogador && tab[b] === jogador && tab[c] === jogador;
+      });
+    }
+
+    function minimax(nodo, jogador) {
+      const oposto = jogador === "O" ? "X" : "O";
+      if (verificarVitoria(nodo, "O")) return {score: +10};
+      if (verificarVitoria(nodo, "X")) return {score: -10};
+      if (!nodo.includes("")) return {score: 0};
+      let movimentos = [];
+      for (let i=0; i<nodo.length; i++) {
+        if (nodo[i] === "") {
+          let novoTab = nodo.slice();
+          novoTab[i] = jogador;
+          let resultado = minimax(novoTab, oposto);
+          movimentos.push({index: i, score: resultado.score});
+        }
+      }
+      let melhorMovimento;
+      if (jogador === "O") {
+        let maxScore = -Infinity;
+        for (let mov of movimentos) {
+          if (mov.score > maxScore) {
+            maxScore = mov.score;
+            melhorMovimento = mov;
+          }
+        }
+      } else {
+        let minScore = Infinity;
+        for (let mov of movimentos) {
+          if (mov.score < minScore) {
+            minScore = mov.score;
+            melhorMovimento = mov;
+          }
+        }
+      }
+      return melhorMovimento;
+    }
+
+    function atualizarPlacar() {
+      placarEl.textContent = `X: ${placar.X} | O: ${placar.O}`;
+    }
+
+    function reiniciarJogo() {
+      criarTabuleiro();
+    }
+
+    function alternarModo() {
+      modoBot = !modoBot;
+      const btn = document.querySelector("button[onclick='alternarModo()']");
+      btn.textContent = modoBot ? "Modo: Jogador vs Bot" : "Modo: 2 Jogadores";
+      reiniciarJogo();
+    }
+
+    criarTabuleiro();
+  </script>
+</body>
+</html>
