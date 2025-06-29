@@ -1,0 +1,157 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Jogo da Velha Dark</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f8f9fa;
+      text-align: center;
+      margin-top: 30px;
+    }
+    h1 {
+      color: #333;
+    }
+    #placar {
+      margin: 10px;
+      font-size: 18px;
+      color: #444;
+    }
+    .tabuleiro {
+      display: grid;
+      grid-template-columns: repeat(3, 100px);
+      gap: 5px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .celula {
+      width: 100px;
+      height: 100px;
+      font-size: 40px;
+      background-color: white;
+      border: 2px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .celula:hover {
+      background-color: #e6e6e6;
+    }
+    #mensagem {
+      margin: 15px 0;
+      font-size: 20px;
+      color: #444;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    @media (max-width: 400px) {
+      .tabuleiro {
+        grid-template-columns: repeat(3, 80px);
+      }
+      .celula {
+        width: 80px;
+        height: 80px;
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Jogo da Velha</h1>
+  <div id="placar">X: 0 | O: 0</div>
+  <div class="tabuleiro" id="tabuleiro"></div>
+  <div id="mensagem"></div>
+  <button onclick="reiniciarJogo()">Reiniciar</button>
+  <button onclick="alternarModo()">Modo: 2 Jogadores</button>
+  <script>
+    const tabuleiro = document.getElementById("tabuleiro");
+    const mensagem = document.getElementById("mensagem");
+    const placarEl = document.getElementById("placar");
+    let jogadorAtual = "X";
+    let jogoAtivo = true;
+    let estado = ["", "", "", "", "", "", "", "", ""];
+    let placar = { X: 0, O: 0 };
+    let modoBot = false;
+    function criarTabuleiro() {
+      estado = ["", "", "", "", "", "", "", "", ""];
+      tabuleiro.innerHTML = "";
+      for (let i = 0; i < 9; i++) {
+        const celula = document.createElement("div");
+        celula.classList.add("celula");
+        celula.dataset.index = i;
+        celula.addEventListener("click", clicarCelula);
+        tabuleiro.appendChild(celula);
+      }
+      jogadorAtual = "X";
+      jogoAtivo = true;
+      mensagem.textContent = `Vez do jogador: ${jogadorAtual}`;
+    }
+    function clicarCelula(e) {
+      const index = e.target.dataset.index;
+      if (estado[index] !== "" || !jogoAtivo) return;
+      estado[index] = jogadorAtual;
+      e.target.textContent = jogadorAtual;
+      if (verificarVitoria()) {
+        mensagem.textContent = `Jogador ${jogadorAtual} venceu!`;
+        placar[jogadorAtual]++;
+        atualizarPlacar();
+        jogoAtivo = false;
+      } else if (!estado.includes("")) {
+        mensagem.textContent = "Empate!";
+        jogoAtivo = false;
+      } else {
+        jogadorAtual = jogadorAtual === "X" ? "O" : "X";
+        mensagem.textContent = `Vez do jogador: ${jogadorAtual}`;
+        if (modoBot && jogadorAtual === "O" && jogoAtivo) {
+          setTimeout(jogadaDoBot, 500);
+        }
+      }
+    }
+    function jogadaDoBot() {
+      let livres = estado.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+      if (livres.length === 0) return;
+      let escolha = livres[Math.floor(Math.random() * livres.length)];
+      const celula = tabuleiro.querySelector(`.celula[data-index='${escolha}']`);
+      celula.click();
+    }
+    function verificarVitoria() {
+      const combinacoes = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      return combinacoes.some(([a,b,c]) => {
+        return estado[a] && estado[a] === estado[b] && estado[a] === estado[c];
+      });
+    }
+    function atualizarPlacar() {
+      placarEl.textContent = `X: ${placar.X} | O: ${placar.O}`;
+    }
+    function reiniciarJogo() {
+      criarTabuleiro();
+    }
+    function alternarModo() {
+      modoBot = !modoBot;
+      const btn = document.querySelector("button[onclick='alternarModo()']");
+      btn.textContent = modoBot ? "Modo: Jogador vs Bot" : "Modo: 2 Jogadores";
+      reiniciarJogo();
+    }
+    criarTabuleiro();
+  </script>
+</body>
+</html>
